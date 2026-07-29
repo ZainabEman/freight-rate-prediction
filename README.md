@@ -9,9 +9,10 @@ The two windows do not overlap, so this is a **forward-extrapolation** problem
 rather than an i.i.d. tabular regression, and the whole pipeline is built around
 that fact.
 
-> **Project status: Phase 3 of 9 complete.** Data audit, EDA, cleaning, feature
-> engineering and the production preprocessing pipeline are done and tested.
-> No model has been trained yet - see [Roadmap](#roadmap).
+> **Project status: Phase 4 of 9 complete.** Data audit, EDA, cleaning, feature
+> engineering, the production preprocessing pipeline and the baseline model
+> comparison are done and tested. No advanced models or submission files exist
+> yet - see [Roadmap](#roadmap).
 
 ---
 
@@ -44,14 +45,20 @@ python -m src.run_eda_phase2
 # Phase 3 - build, verify and persist the preprocessing pipeline
 python -m src.run_preprocessing_phase3
 
+# Phase 4 - train, evaluate and compare baseline models
+python -m src.run_baselines_phase4
+
 # Test suite
 python -m pytest tests -q
 ```
 
-`run_preprocessing_phase3` is the current end-to-end entry point. It loads the
-raw CSVs, fits the pipeline on training data only, runs every integrity guard,
-verifies the temporal split and the reduced-feature December path, writes the
-processed matrices and reports, and persists the fitted pipeline to `models/`.
+`run_preprocessing_phase3` builds the feature pipeline: it loads the raw CSVs,
+fits on training data only, runs every integrity guard, verifies the temporal
+split and the reduced-feature December path, and persists the fitted pipeline.
+
+`run_baselines_phase4` then evaluates seven baselines against the temporal
+holdout and expanding-window CV, writes the comparison report, and persists the
+winning baseline as the reference bar for Phase 5.
 
 ## Repository structure
 
@@ -77,12 +84,15 @@ processed matrices and reports, and persists the fitted pipeline to `models/`.
 │   ├── pipeline.py             Pipeline assembly + integrity guards
 │   ├── splitting.py            Time-based split utilities
 │   ├── inference.py            Full and reduced-feature inference paths
+│   ├── metrics.py              MAE / RMSE / R2 / MAPE
+│   ├── baselines.py            Baseline regressors
+│   ├── evaluation.py           Time-aware evaluation harness
 │   ├── reporting_phase3.py     Phase-3 report generation
 │   └── run_*.py                Phase entry points
 ├── notebooks/                  Exploratory notebooks
 ├── reports/                    Generated markdown reports
 ├── figures/                    Generated figures
-├── tests/                      80 tests
+├── tests/                      87 tests
 ├── processed/                  Derived matrices (git-ignored)
 ├── models/                     Fitted pipeline + metadata (git-ignored)
 └── score.py                    Provided scorer (unmodified)
@@ -165,6 +175,21 @@ curve to vary meaningfully when only the date changes.
 | `reports/exploratory_data_analysis.md` | Distributions, correlations, geography, temporal structure |
 | `reports/preprocessing_report.md` | Every cleaning and feature decision with its evidence |
 | `reports/feature_dictionary_phase3.md` | The 156 model-ready features |
+| `reports/baseline_models.md` | Baseline comparison on the temporal holdout |
+
+## Baseline results
+
+Measured on the temporal holdout (Sep-Oct 2025), ranked by MAE:
+
+| Model | MAE | RMSE | R2 | MAPE |
+|:--|--:|--:|--:|--:|
+| **Ridge (log target)** | **$145.24** | **$644.04** | **0.8219** | **6.27%** |
+| Ridge (alpha=1.0) | $149.36 | $641.36 | 0.8234 | 8.65% |
+| LinearRegression | $149.37 | $641.36 | 0.8234 | 8.65% |
+| Rate-per-mile (by equipment) | $229.10 | $670.66 | 0.8069 | 10.49% |
+| Rate-per-mile (global) | $256.95 | $684.25 | 0.7990 | 11.63% |
+| Median (constant) | $1,148.92 | $1,569.42 | -0.0576 | 70.15% |
+| Mean (constant) | $1,178.80 | $1,526.23 | -0.0002 | 83.43% |
 
 ## Roadmap
 
@@ -174,7 +199,7 @@ curve to vary meaningfully when only the date changes.
 | 1 - Data audit and validation | Complete |
 | 2 - EDA | Complete |
 | 3 - Foundation repair and feature engineering | Complete |
-| 4 - Baselines and validation framework | Not started |
+| 4 - Baselines and validation framework | Complete |
 | 5 - Advanced models and tuning | Not started |
 | 6 - Explainability and error analysis | Not started |
 | 7 - Final training and predictions | Not started |
