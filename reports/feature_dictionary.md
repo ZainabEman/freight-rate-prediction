@@ -1,6 +1,6 @@
 # Feature Dictionary (inferred, Phase 1)
 
-Generated from train-test.csv with heuristic descriptions based on inferred datatypes and column names.
+Generated from data/train_test.csv with heuristic descriptions based on inferred datatypes and column names.
 
 | Feature Name   | Type    | Description (inferred)                       | Missing %   | Recommended Usage                                             |
 |:---------------|:--------|:---------------------------------------------|:------------|:--------------------------------------------------------------|

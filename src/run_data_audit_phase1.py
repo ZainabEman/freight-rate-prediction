@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from pathlib import Path
 
 import pandas as pd
 
-from data_loader import load_datasets
-from data_profiler import build_profile
-from data_validator import validate_all, ValidationIssue
+from src.config import load_config, set_global_seed
+from src.data_loader import load_datasets
+from src.data_profiler import build_profile
+from src.data_validator import ValidationIssue, validate_all
+from src.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def issues_to_md(issues: list[ValidationIssue]) -> str:
@@ -22,11 +25,14 @@ def issues_to_md(issues: list[ValidationIssue]) -> str:
 
 
 def main() -> None:
-    project_root = Path(".").resolve()
-    reports_dir = project_root / "reports"
+    config = load_config()
+    set_global_seed(config.random_seed)
+    reports_dir = config.paths.reports_dir
     reports_dir.mkdir(parents=True, exist_ok=True)
 
-    datasets = load_datasets(train_path="train-test.csv", validation_path="validation.csv")
+    datasets = load_datasets(
+        train_path=config.paths.train, validation_path=config.paths.validation
+    )
     train_df = datasets.train
     val_df = datasets.validation
 
@@ -67,7 +73,7 @@ def main() -> None:
     feature_dictionary_df = pd.DataFrame(rows)
     feature_dictionary_md = (
         "# Feature Dictionary (inferred, Phase 1)\n\n"
-        + "Generated from train-test.csv with heuristic descriptions based on inferred datatypes and column names.\n\n"
+        + "Generated from data/train_test.csv with heuristic descriptions based on inferred datatypes and column names.\n\n"
         + feature_dictionary_df.to_markdown(index=False)
     )
 
@@ -154,7 +160,7 @@ def main() -> None:
     (reports_dir / "data_audit.md").write_text(data_audit_md, encoding="utf-8")
     (reports_dir / "feature_dictionary.md").write_text(feature_dictionary_md, encoding="utf-8")
 
-    print("Wrote reports/data_audit.md and reports/feature_dictionary.md")
+    logger.info("Wrote %s and %s", reports_dir / "data_audit.md", reports_dir / "feature_dictionary.md")
 
 
 if __name__ == "__main__":

@@ -162,7 +162,6 @@ def audit_features(
         observations: list[str] = []
 
         # Possible purpose
-        lc = col.lower()
         possible_purpose = "unknown"
         if col in inferred_identifiers:
             possible_purpose = "identifier"

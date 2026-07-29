@@ -202,31 +202,52 @@ def invalid_numeric_values_report(
     df: pd.DataFrame, *, numeric_candidate_min_unique: int = 5
 ) -> list[ValidationIssue]:
     """
-    Detect invalid numeric values for columns that are either:
-      - already numeric dtype, or
-      - object-like but look numeric (high % of coercible values)
+    Detect invalid numeric values.
 
-    Heuristic (documented, not assumed):
-      - For object columns, we attempt numeric coercion.
-      - If invalid (non-coercible) exists, report it.
+    IMPORTANT (fixing Phase-1 false positives):
+    - We only treat a column as "numeric to validate" if:
+        (a) pandas already inferred a numeric dtype, OR
+        (b) the column name strongly suggests numeric content (heuristic).
+    - We do NOT attempt numeric coercion on arbitrary object/string columns
+      (e.g., IDs, categoricals like pickup/delivery/date) to avoid incorrect failures.
     """
     issues: list[ValidationIssue] = []
 
+    numeric_name_hints = {
+        "lat",
+        "lon",
+        "lng",
+        "latitude",
+        "longitude",
+        "distance",
+        "weight",
+        "index",
+        "signal",
+        "rate",
+        "amount",
+        "price",
+        "quote",
+    }
+
     for col in df.columns:
         series = df[col]
+        col_name = str(col).lower()
         is_numeric_dtype = pd.api.types.is_numeric_dtype(series.dtype)
 
-        # Only attempt coercion for object-like columns if likely numeric by unique count
+        name_suggests_numeric = any(hint in col_name for hint in numeric_name_hints)
+        if not is_numeric_dtype and not name_suggests_numeric:
+            continue
+
+        # Optional guard: for object columns with numeric-looking names, still avoid flagging
+        # if the column is actually low-cardinality categorical disguised as object.
         if not is_numeric_dtype:
             if pd.api.types.is_object_dtype(series.dtype) or pd.api.types.is_string_dtype(series.dtype):
                 if series.nunique(dropna=True) < numeric_candidate_min_unique:
-                    continue  # avoid false positives for categorical strings
-            else:
-                # Skip other exotic dtypes
-                continue
+                    continue
 
         numeric, invalid_mask = _coerce_numeric(series)
         invalid_count = int(invalid_mask.sum())
+
         if invalid_count > 0:
             total_non_missing = int(series.notna().sum())
             invalid_pct = 100.0 * invalid_count / total_non_missing if total_non_missing else 0.0
@@ -243,19 +264,17 @@ def invalid_numeric_values_report(
             )
             continue
 
-        # Check for non-finite for numeric dtypes / coerced numeric
-        if is_numeric_dtype or invalid_count == 0:
-            non_finite = (~np.isfinite(numeric.astype(float))) & numeric.notna()
-            if bool(non_finite.any()):
-                count = int(non_finite.sum())
-                issues.append(
-                    ValidationIssue(
-                        issue_type="numeric",
-                        column=str(col),
-                        message=f"Non-finite numeric values found for '{col}': count={count}.",
-                        severity="error",
-                    )
+        non_finite = (~np.isfinite(numeric.astype(float))) & numeric.notna()
+        if bool(non_finite.any()):
+            count = int(non_finite.sum())
+            issues.append(
+                ValidationIssue(
+                    issue_type="numeric",
+                    column=str(col),
+                    message=f"Non-finite numeric values found for '{col}': count={count}.",
+                    severity="error",
                 )
+            )
 
     return issues
 
@@ -267,8 +286,16 @@ def _find_coordinate_columns(df: pd.DataFrame) -> list[tuple[str, str]]:
     This is a heuristic and may not match the dataset; we document findings elsewhere.
     """
     cols = list(map(str, df.columns))
-    lat_candidates = [c for c in cols if c.lower() in {"lat", "latitude"} or "latitude" in c.lower() or c.lower().endswith("_lat")]
-    lon_candidates = [c for c in cols if c.lower() in {"lon", "lng", "longitude"} or "longitude" in c.lower() or c.lower().endswith("_lon")]
+    lat_candidates = [
+        c
+        for c in cols
+        if c.lower() in {"lat", "latitude"} or "latitude" in c.lower() or c.lower().endswith("_lat")
+    ]
+    lon_candidates = [
+        c
+        for c in cols
+        if c.lower() in {"lon", "lng", "longitude"} or "longitude" in c.lower() or c.lower().endswith("_lon")
+    ]
 
     pairs: list[tuple[str, str]] = []
     for lat in lat_candidates:
@@ -289,8 +316,17 @@ def impossible_coordinates_report(df: pd.DataFrame) -> list[ValidationIssue]:
     if not pairs:
         return issues
 
+    # Phase-3 fix (audit finding C-3): this was previously wrapped in an outer
+    # loop whose variables were discarded and which always broke on its first
+    # iteration, so it re-checked every pair once and then exited. Each distinct
+    # coordinate column is now checked exactly once.
+    checked: set[str] = set()
     for lat_col, lon_col in pairs:
         for col, lo, hi in [(lat_col, -90.0, 90.0), (lon_col, -180.0, 180.0)]:
+            if col in checked:
+                continue
+            checked.add(col)
+
             numeric, invalid_mask = _coerce_numeric(df[col])
             out_of_range = numeric.notna() & ((numeric < lo) | (numeric > hi))
             if bool(out_of_range.any()):
@@ -316,6 +352,7 @@ def impossible_coordinates_report(df: pd.DataFrame) -> list[ValidationIssue]:
                         severity="warning",
                     )
                 )
+
     return issues
 
 
@@ -335,7 +372,6 @@ def categorical_inconsistency_report(df: pd.DataFrame) -> list[ValidationIssue]:
 
     for col in object_cols:
         s = df[col].astype("string")
-
         non_missing = s.dropna()
         if len(non_missing) == 0:
             continue
@@ -362,8 +398,6 @@ def categorical_inconsistency_report(df: pd.DataFrame) -> list[ValidationIssue]:
                 )
             )
 
-        # Mixed casing: if many unique values, check case-fold duplicates
-        # (We only flag if case-fold reduces cardinality significantly.)
         uniq_raw = non_missing.nunique(dropna=True)
         uniq_casefold = non_missing.str.casefold().nunique(dropna=True)
         if uniq_raw >= 2 and uniq_casefold < uniq_raw:
@@ -372,7 +406,9 @@ def categorical_inconsistency_report(df: pd.DataFrame) -> list[ValidationIssue]:
                     ValidationIssue(
                         issue_type="categorical",
                         column=str(col),
-                        message=f"Mixed casing likely in '{col}' (case-fold reduces unique count from {uniq_raw} to {uniq_casefold}).",
+                        message=(
+                            f"Mixed casing likely in '{col}' (case-fold reduces unique count from {uniq_raw} to {uniq_casefold})."
+                        ),
                         severity="info",
                     )
                 )
@@ -401,7 +437,6 @@ def validate_all(
     train_issues: list[ValidationIssue] = []
     val_issues: list[ValidationIssue] = []
 
-    # duplicates
     dup_issue = find_duplicate_rows(train_df)
     if dup_issue:
         train_issues.append(dup_issue)
@@ -409,7 +444,6 @@ def validate_all(
     if dup_issue:
         val_issues.append(dup_issue)
 
-    # duplicate load_id
     issue = find_duplicate_load_ids(train_df, load_id_col=load_id_col)
     if issue:
         train_issues.append(issue)
@@ -417,19 +451,15 @@ def validate_all(
     if issue:
         val_issues.append(issue)
 
-    # missing
     train_issues.extend(missing_values_report(train_df))
     val_issues.extend(missing_values_report(validation_df))
 
-    # invalid numeric
     train_issues.extend(invalid_numeric_values_report(train_df))
     val_issues.extend(invalid_numeric_values_report(validation_df))
 
-    # impossible coords
     train_issues.extend(impossible_coordinates_report(train_df))
     val_issues.extend(impossible_coordinates_report(validation_df))
 
-    # categorical inconsistency
     train_issues.extend(categorical_inconsistency_report(train_df))
     val_issues.extend(categorical_inconsistency_report(validation_df))
 

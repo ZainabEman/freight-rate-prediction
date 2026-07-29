@@ -5,7 +5,7 @@
 - Validation shape: (12000, 13)
 - Number of features (train): 14
 - Target variable (heuristic): posted_rate
- - Data quality issues found: train=6, validation=6, cross-schema=1
+ - Data quality issues found: train=2, validation=2, cross-schema=1
 
 ## Identified feature groups (heuristic, documented uncertainty)
 - Target column: posted_rate
@@ -50,24 +50,15 @@
 ### Training issues
 - **[warning]** quality | column=weight: Missing values: 300/48000 (0.625%).
 - **[warning]** quality | column=market_index: Missing values: 374/48000 (0.779%).
-- **[error]** numeric | column=load_id: Invalid numeric values found for 'load_id': 48000/48000 coercions failed (100.000%).
-- **[error]** numeric | column=pickup: Invalid numeric values found for 'pickup': 48000/48000 coercions failed (100.000%).
-- **[error]** numeric | column=delivery: Invalid numeric values found for 'delivery': 48000/48000 coercions failed (100.000%).
-- **[error]** numeric | column=date: Invalid numeric values found for 'date': 48000/48000 coercions failed (100.000%).
 
 ### Validation issues
 - **[warning]** quality | column=weight: Missing values: 165/12000 (1.375%).
 - **[warning]** quality | column=market_index: Missing values: 249/12000 (2.075%).
-- **[error]** numeric | column=load_id: Invalid numeric values found for 'load_id': 12000/12000 coercions failed (100.000%).
-- **[error]** numeric | column=pickup: Invalid numeric values found for 'pickup': 12000/12000 coercions failed (100.000%).
-- **[error]** numeric | column=delivery: Invalid numeric values found for 'delivery': 12000/12000 coercions failed (100.000%).
-- **[error]** numeric | column=date: Invalid numeric values found for 'date': 12000/12000 coercions failed (100.000%).
 
 ### Cross-dataset schema issues
 - **[error]** schema | column=(dataset): Validation is missing columns present in training: ['posted_rate']
 ## Potential risks & recommendations (initial)
 - Risks identified:
-  - Invalid numeric values found; Phase 2 must strictly coerce/validate and handle failures.
   - Train/validation schema mismatch; Phase 2 must align preprocessing and encoding consistently.
   - Missingness present; Phase 2 must decide imputation strategy or missing-indicator usage.
 - Recommendations before Phase 2 (EDA):
