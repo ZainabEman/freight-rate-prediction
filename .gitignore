@@ -12,7 +12,11 @@ env/
 # Raw data under data/ IS tracked; everything derived from it is not.
 processed/
 models/
-scorer_results/
+# Note: the directory itself must not be excluded, or the negation below cannot
+# take effect - git will not re-include a file whose parent directory is ignored.
+scorer_results/*
+# ...except the December chart, which is a required submission artifact.
+!scorer_results/candidate_december.png
 
 # --- Test / tooling caches ---------------------------------------------------
 .pytest_cache/

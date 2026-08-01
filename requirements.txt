@@ -25,8 +25,12 @@ xgboost>=2.0,<4
 lightgbm>=4.0,<5
 catboost>=1.2,<2
 
-# --- Report generation (DataFrame.to_markdown) -------------------------------
-tabulate>=0.9,<1
+# --- Explainability (Phase 6) ------------------------------------------------
+shap>=0.44,<1
+
+# --- Report generation -------------------------------------------------------
+tabulate>=0.9,<1              # DataFrame.to_markdown
+reportlab>=4.0,<5             # technical report PDF
 
 # --- Testing -----------------------------------------------------------------
 pytest>=8.0,<9

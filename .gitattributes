@@ -1,0 +1,15 @@
+# Binary artifacts must never receive newline conversion. Without this, git on
+# Windows rewrites LF to CRLF inside the PDF/PNG/joblib byte streams and the
+# files are corrupted on checkout.
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.joblib binary
+*.ipynb -text
+
+# Keep text files normalised in the repository.
+*.py    text eol=lf
+*.md    text eol=lf
+*.yaml  text eol=lf
+*.txt   text eol=lf
+*.csv   text eol=lf
