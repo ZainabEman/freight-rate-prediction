@@ -4,7 +4,7 @@ Predicting freight `posted_rate` (USD) per load from lane, equipment, weight and
 market-context features.
 
 **Final model: CatBoost on a log target with Duan smearing correction —
-MAE $114.99, MAPE 5.03%, R² 0.830** on a strictly out-of-sample temporal holdout
+MAE $114.99, MAPE 5.03%, R² 0.8262** on a strictly out-of-sample temporal holdout
 of 9,523 loads.
 
 > **Status: complete and validated against the official scorer.**
@@ -248,7 +248,7 @@ Holdout MAE, Sep–Oct 2025 (9,523 loads):
 
 | Model | MAE | RMSE | R² | MAPE |
 |:--|--:|--:|--:|--:|
-| **CatBoost + smearing** ← final | **$114.99** | **$636.25** | **0.8302** | **5.03%** |
+| **CatBoost + smearing** ← final | **$114.99** | **$636.25** | **0.8262** | **5.03%** |
 | CatBoost | $132.15 | $641.48 | 0.8233 | 5.68% |
 | LightGBM | $135.78 | $642.24 | 0.8229 | 5.88% |
 | HistGradientBoosting | $136.21 | $640.69 | 0.8237 | 5.93% |
