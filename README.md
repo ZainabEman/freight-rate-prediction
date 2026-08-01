@@ -118,6 +118,9 @@ python -m src.run_final_predictions_phase7
 # Technical report (PDF)
 python -m src.build_technical_report
 
+# Interactive dashboard (self-contained HTML)
+python -m src.build_dashboard
+
 # Test suite (93 tests)
 python -m pytest tests -q
 ```
@@ -163,7 +166,13 @@ python score.py \
 │   ├── reporting_phase3.py         Phase-3 report generation
 │   ├── reporting_phase6.py         Phase-6 report generation
 │   ├── build_technical_report.py   Technical report PDF
+│   ├── dashboard_data.py           Dashboard artifact collection
+│   ├── dashboard_assets.py         Dashboard CSS + interactive charts
+│   ├── dashboard_sections.py       Decision log, timeline, repo map
+│   ├── dashboard_panels.py         Dashboard panel renderers
+│   ├── build_dashboard.py          Builds dashboard/index.html
 │   └── run_*.py                    Phase entry points
+├── dashboard/index.html            Self-contained interactive case study
 ├── notebooks/                      Exploratory notebooks (phases 1–2)
 ├── reports/                        Generated reports + technical report PDF
 ├── figures/                        eda, shap, importance, residuals,
@@ -326,6 +335,7 @@ tail is not something hyperparameters can fix.
 | `data/december_chart_inputs.csv` | 31 rows with `predicted_rate` filled | ✅ Validated |
 | `scorer_results/candidate_december.png` | Chart from `score.py` | ✅ Generated |
 | `reports/Freight_Rate_Prediction_Technical_Report.pdf` | 9-page technical report | ✅ Generated |
+| `dashboard/index.html` | Interactive case study, 23 sections | ✅ Generated |
 | `models/final_model.joblib` | Complete fitted pipeline | ✅ Persisted |
 
 Prediction statistics: min $201.65 · median $1,975.49 · mean $2,280.56 · max
