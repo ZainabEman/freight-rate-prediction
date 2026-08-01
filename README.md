@@ -9,10 +9,10 @@ The two windows do not overlap, so this is a **forward-extrapolation** problem
 rather than an i.i.d. tabular regression, and the whole pipeline is built around
 that fact.
 
-> **Project status: Phase 4 of 9 complete.** Data audit, EDA, cleaning, feature
-> engineering, the production preprocessing pipeline and the baseline model
-> comparison are done and tested. No advanced models or submission files exist
-> yet - see [Roadmap](#roadmap).
+> **Project status: Phase 5 of 9 complete.** Data audit, EDA, cleaning, feature
+> engineering, the production preprocessing pipeline, baselines and tuned
+> advanced models are done and tested. No submission files exist yet - see
+> [Roadmap](#roadmap).
 
 ---
 
@@ -47,6 +47,9 @@ python -m src.run_preprocessing_phase3
 
 # Phase 4 - train, evaluate and compare baseline models
 python -m src.run_baselines_phase4
+
+# Phase 5 - tune and compare advanced models
+python -m src.run_advanced_models_phase5
 
 # Test suite
 python -m pytest tests -q
@@ -87,12 +90,14 @@ winning baseline as the reference bar for Phase 5.
 │   ├── metrics.py              MAE / RMSE / R2 / MAPE
 │   ├── baselines.py            Baseline regressors
 │   ├── evaluation.py           Time-aware evaluation harness
+│   ├── advanced_models.py      Advanced model specs + search spaces
+│   ├── tuning.py               Leakage-safe randomised search
 │   ├── reporting_phase3.py     Phase-3 report generation
 │   └── run_*.py                Phase entry points
 ├── notebooks/                  Exploratory notebooks
 ├── reports/                    Generated markdown reports
 ├── figures/                    Generated figures
-├── tests/                      87 tests
+├── tests/                      93 tests
 ├── processed/                  Derived matrices (git-ignored)
 ├── models/                     Fitted pipeline + metadata (git-ignored)
 └── score.py                    Provided scorer (unmodified)
@@ -176,10 +181,26 @@ curve to vary meaningfully when only the date changes.
 | `reports/preprocessing_report.md` | Every cleaning and feature decision with its evidence |
 | `reports/feature_dictionary_phase3.md` | The 156 model-ready features |
 | `reports/baseline_models.md` | Baseline comparison on the temporal holdout |
+| `reports/model_comparison.md` | Advanced model tuning and final comparison |
 
-## Baseline results
+## Results
 
-Measured on the temporal holdout (Sep-Oct 2025), ranked by MAE:
+Measured on the temporal holdout (Sep-Oct 2025, 9,523 rows), ranked by MAE.
+Advanced models are tuned by `RandomizedSearchCV` over `TimeSeriesSplit(3)`:
+
+| Model | MAE | RMSE | R2 | MAPE |
+|:--|--:|--:|--:|--:|
+| **CatBoost** (selected) | **$132.15** | **$641.48** | **0.8233** | **5.68%** |
+| LightGBM | $135.78 | $642.24 | 0.8229 | 5.88% |
+| HistGradientBoosting | $136.21 | $640.69 | 0.8237 | 5.93% |
+| RandomForest | $144.85 | $646.24 | 0.8207 | 6.27% |
+| Ridge (log target) - best baseline | $145.24 | $644.04 | 0.8219 | 6.27% |
+| XGBoost | $157.60 | $654.23 | 0.8162 | 6.84% |
+
+All advanced models train on `log(posted_rate)` and are persisted as complete
+pipelines (preprocessing + model), so they predict directly from raw frames.
+
+### Baseline detail
 
 | Model | MAE | RMSE | R2 | MAPE |
 |:--|--:|--:|--:|--:|
@@ -200,7 +221,7 @@ Measured on the temporal holdout (Sep-Oct 2025), ranked by MAE:
 | 2 - EDA | Complete |
 | 3 - Foundation repair and feature engineering | Complete |
 | 4 - Baselines and validation framework | Complete |
-| 5 - Advanced models and tuning | Not started |
+| 5 - Advanced models and tuning | Complete |
 | 6 - Explainability and error analysis | Not started |
 | 7 - Final training and predictions | Not started |
 | 8 - Documentation and technical report | Not started |
