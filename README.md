@@ -403,4 +403,4 @@ weekly periodicity comes from the cyclical day-of-week features.
 3. **Native categorical handling** to replace 131 sparse one-hot columns.
 4. **Lane-level aggregate features** (historical median $/mile per lane) computed
    time-aware to avoid leakage.
-5. **Drift monitoring** on `market_index` and rate distributions in production.
+5. **Drift monitoring** on `market_index` and rate distributions in production.....
