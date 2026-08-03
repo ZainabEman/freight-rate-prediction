@@ -1,6 +1,6 @@
 # Freight Rate Prediction
 
-Predicting freight `posted_rate` (USD) per load from lane, equipment, weight and
+Predicting freight `posted_rate` (USD) per load from lane, equipment, weight, and
 market-context features.
 
 **Final model: CatBoost on a log target with Duan smearing correction —
